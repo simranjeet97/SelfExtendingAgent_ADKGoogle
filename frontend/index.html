@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dev Assistant — Self-Extending Agent</title>
+  <meta name="description" content="A self-extending AI developer assistant powered by Google ADK and Ollama. Watch the agent create new skills for itself in real time." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Animated background orbs -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">Dev Assistant</div>
+            <div class="brand-sub">Self-Extending Agent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model badge -->
+      <div class="model-badge">
+        <span class="model-dot"></span>
+        <span>Gemini 2.5 Flash Lite</span>
+      </div>
+
+      <!-- Skills section -->
+      <div class="skills-header">
+        <span class="skills-title">Skills</span>
+        <span class="skills-count-badge" id="skills-count">0</span>
+      </div>
+
+      <div class="skills-filter-row">
+        <button class="filter-btn active" data-filter="all" id="filter-all" onclick="filterSkills('all', this)">All</button>
+        <button class="filter-btn" data-filter="builtin" id="filter-builtin" onclick="filterSkills('builtin', this)">Built-in</button>
+        <button class="filter-btn" data-filter="generated" id="filter-generated" onclick="filterSkills('generated', this)">Generated</button>
+      </div>
+
+      <div class="skills-list" id="skills-list">
+        <!-- Skeleton loading placeholders -->
+        <div class="skill-skeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skill-skeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
+      </div>
+
+      <!-- Sidebar footer -->
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="status-text">Connecting…</span>
+        </div>
+        <button class="refresh-btn" id="refresh-btn" onclick="refreshSkills()" title="Refresh skills">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── MAIN PANEL ────────────────────────────────────────────────── -->
+    <main class="main-panel">
+
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="topbar-icon">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Chat
+        </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" id="new-chat-btn" onclick="clearChat()" title="New conversation">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            New Chat
+          </button>
+        </div>
+      </header>
+
+      <!-- Learning Banner (hidden by default) -->
+      <div class="learning-banner" id="learning-banner">
+        <div class="banner-icon">🧠</div>
+        <div class="banner-text">
+          <div class="banner-title">Learning Mode Active</div>
+          <div class="banner-sub" id="banner-sub-text">Building new skill from scratch…</div>
+        </div>
+        <div class="banner-steps" id="banner-steps">
+          <div class="step-item" id="step-scan">
+            <div class="step-dot"></div><span>Scan</span>
+          </div>
+          <div class="step-sep"></div>
+          <div class="step-item" id="step-gap">
+            <div class="step-dot"></div><span>Gap</span>
+          </div>
+          <div class="step-sep"></div>
+          <div class="step-item" id="step-learn">
+            <div class="step-dot"></div><span>Learn</span>
+          </div>
+          <div class="step-sep"></div>
+          <div class="step-item" id="step-done">
+            <div class="step-dot"></div><span>Done</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-container" id="messages-container">
+        <!-- Welcome screen -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4l3 3"/>
+            </svg>
+          </div>
+          <h2 class="welcome-title">How can I help you?</h2>
+          <p class="welcome-sub">I'm a self-extending assistant. I can review code, guide Git workflows — and write brand new skills for myself when you ask about something new.</p>
+
+          <div class="quick-prompts">
+            <button class="quick-btn" id="quick-1" onclick="useQuickPrompt(this)">
+              <span class="quick-icon">🔍</span>
+              <span>Review this code for security issues</span>
+            </button>
+            <button class="quick-btn" id="quick-2" onclick="useQuickPrompt(this)">
+              <span class="quick-icon">🌿</span>
+              <span>Guide me through Git branching strategy</span>
+            </button>
+            <button class="quick-btn" id="quick-3" onclick="useQuickPrompt(this)">
+              <span class="quick-icon">⚡</span>
+              <span>Create a new skill for Docker + FastAPI</span>
+            </button>
+            <button class="quick-btn" id="quick-4" onclick="useQuickPrompt(this)">
+              <span class="quick-icon">📝</span>
+              <span>Write a skill for Python testing best practices</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orchestration Logs (collapsible) -->
+      <div id="orchestrator-logs" class="orchestrator-logs" role="log">
+        <div class="logs-header" id="logs-header" onclick="toggleLogs()">
+          <div class="logs-header-left">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 7 4 4 20 4 20 7"></polyline>
+              <line x1="8" y1="20" x2="16" y2="20"></line>
+              <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+            PROCESS LOGS
+            <span id="log-badge" style="display:none; padding:1px 6px; border-radius:20px; background:rgba(139,92,246,0.2); color:var(--accent-purple); font-size:9px;"></span>
+          </div>
+          <svg class="logs-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </div>
+        <div id="log-list" class="log-list">
+          <!-- Logs appear here -->
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea
+            id="user-input"
+            class="user-input"
+            placeholder="Ask me anything — or ask me to create a new skill…"
+            rows="1"
+            onkeydown="handleKeyDown(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- New skill toast notification -->
+  <div class="toast" id="skill-toast">
+    <div class="toast-icon">⚡</div>
+    <div class="toast-content">
+      <div class="toast-title">New Skill Created!</div>
+      <div class="toast-sub" id="toast-skill-name">Loading…</div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
