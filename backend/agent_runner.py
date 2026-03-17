@@ -189,9 +189,9 @@ async def run_answer_stream(
         prompt = f"User Question: {user_message}\n\nInstruction: Answer in Markdown."
 
     answer_agent = LlmAgent(
-        model="gemini-2.5-flash",
+        model="ollama/qwen2.5:3b",
         generate_content_config=genai_types.GenerateContentConfig(
-            temperature=0.1, max_output_tokens=8192
+            temperature=0.3, max_output_tokens=8192
         ),
         name="dev_assistant_answer",
         description="Answers questions based on skill context.",
